@@ -16,16 +16,7 @@ bool compareArrays(uint8_t *a1, uint8_t *a2, int commonSize) {
     return true;
 }
 
-void printBuffer(uint8_t *buf, int size) {
-    Serial.printf("Buffer:\n");
-    for (int i = 0; i < size; i++) {
-        buf[i] > 15 ? Serial.printf("%x ", buf[i]) : Serial.printf("0%x ", buf[i]);
-        if ((i+1) % 4 == 0) {
-            Serial.printf("\n");
-        }
-    }
-    Serial.printf("\n");
-}
+
 
 void MidiMessage::print() {
     Serial.printf("%s %s\n", "Midi Event: ", description);
@@ -33,7 +24,7 @@ void MidiMessage::print() {
     Serial.printf("  Channel: %d\n", channel);
     Serial.printf("  # of data bytes: %d\n", len);
     Serial.printf("  Data: \n");
-    printBuffer(data, len);
+//    printBuffer(data, len);
 }
 
 void TrackEvent::print() {
@@ -56,7 +47,10 @@ void MidiChunk::gobble(File file) {
     }
 
     uint8_t chunk_length_bytes[4];
-    file.read(chunk_length_bytes, 4);
+
+    size_t size_read = file.read(chunk_length_bytes, 4);
+    Serial.printf("Size read in gobble: %d\n", size_read);
+//    printBuffer(chunk_length_bytes, 4);
     _chunkLength |= chunk_length_bytes[0] << 24;
     _chunkLength |= chunk_length_bytes[1] << 16;
     _chunkLength |= chunk_length_bytes[2] << 8;

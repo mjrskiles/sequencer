@@ -6,6 +6,18 @@ const char *file_path = "zelda-overworld.mid";
 const int chipSelect = BUILTIN_SDCARD;
 
 File glob_file;
+uint8_t buf[] = {0,0,0,0};
+
+void printBuffer(uint8_t *buf, int size) {
+    Serial.printf("Buffer:\n");
+    for (int i = 0; i < size; i++) {
+        buf[i] > 15 ? Serial.printf("%x ", buf[i]) : Serial.printf("0%x ", buf[i]);
+        if ((i+1) % 4 == 0) {
+            Serial.printf("\n");
+        }
+    }
+    Serial.printf("\n");
+}
 
 void setup() {
     // Open serial communications and wait for port to open:
@@ -26,10 +38,8 @@ void setup() {
     delay(2000);
     glob_file = SD.open(file_path, FILE_WRITE);
     Serial.printf("Opened file at %s\n", glob_file.name());
-//    MidiFile mf = MidiFile(file_path);
-    HeaderChunk header = HeaderChunk();
-    header.gobble(glob_file);
-    header.processHeader();
+    size_t sizeRead = glob_file.read(buf, 4);
+    printBuffer(buf, 4);
 }
 
 void loop() {
