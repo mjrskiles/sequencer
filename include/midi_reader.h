@@ -4,19 +4,13 @@
 
 #ifndef SEQUENCER_MIDI_READER_H
 #define SEQUENCER_MIDI_READER_H
-
-//
-// Created by Michael Skiles on 10/6/21.
-//
-
 /*
  * Based on the midi file spec found at https://midimusic.github.io/tech/midispec.html
  */
 
-#ifndef MIDI_PRINTER_MIDI_FILE_PRINTER_H
-
 #include <SD.h>
 #include "strings.h"
+#include "cstdint"
 
 #define CHUNK_TYPE_HEADER 0
 #define CHUNK_TYPE_TRACK 1
@@ -143,10 +137,6 @@ protected:
     TrackChunk *_tracks;
     int _numTracks;
 };
-
-#define MIDI_PRINTER_MIDI_FILE_PRINTER_H
-
-#endif //MIDI_PRINTER_MIDI_FILE_PRINTER_H
 
 
 #endif //SEQUENCER_MIDI_READER_H

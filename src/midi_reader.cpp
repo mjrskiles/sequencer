@@ -119,7 +119,6 @@ void TrackChunk::processTrack() {
 }
 
 TrackEvent TrackChunk::readTrackEvent() {
-    // TODO don't forget to handle running status
     uint32_t time = MidiFile::parseVariableLengthQuantity(_buffer, _bufferOffset);
     uint8_t nextByte = readByte();
     MidiMessage message = MidiMessage();
