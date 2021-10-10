@@ -1,0 +1,19 @@
+//
+// Created by mjrsk on 10/9/2021.
+//
+
+#ifndef SEQUENCER_MIDI_STREAM_PARSER_H
+#define SEQUENCER_MIDI_STREAM_PARSER_H
+
+enum MidiEvents : byte {
+    NOTE_ON,
+    NOTE_OFF,
+    AFTERTOUCH_PRESSURE,
+    CONTROL_CHANGE,
+    PROGRAM_CHANGE,
+    CHANNEL_PRESSURE,
+    PITCH_WHELL_CHANGE
+    SYSEX
+};
+
+#endif //SEQUENCER_MIDI_STREAM_PARSER_H
