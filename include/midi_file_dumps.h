@@ -5,8 +5,10 @@
 #ifndef SEQUENCER_MIDI_STREAMS_H
 #define SEQUENCER_MIDI_STREAMS_H
 
-#include "cstdint.h"
+#define ZELDA_FILE_BYTES_SIZE 7134
 
-extern byte *zelda_theme;
+#include <cstdint>
+
+extern uint8_t zelda_theme[ZELDA_FILE_BYTES_SIZE];
 
 #endif //SEQUENCER_MIDI_STREAMS_H
