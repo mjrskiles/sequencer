@@ -72,6 +72,8 @@ public:
     TrackEvent readEvent();
     uint32_t readVariableLengthQuantity();
 
+    // Testing only
+    void advanceBy(uint8_t numBytes);
 protected:
     MidiStream _midiStream;
     bool _available = false;

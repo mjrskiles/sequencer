@@ -101,3 +101,9 @@ bool MidiParser::compareArrays(uint8_t *a1, uint8_t *a2, int commonSize) {
     }
     return true;
 }
+
+void MidiParser::advanceBy(uint8_t numBytes) {
+    for(uint8_t i = 0; i < numBytes; i++) {
+        _midiStream.nextByte();
+    }
+}
