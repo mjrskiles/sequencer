@@ -14,6 +14,9 @@
 #include <midi_stream_parser.h>
 #include <midi_stream.h>
 
+// Testing
+#include <Arduino.h>
+
 MidiParser::MidiParser(MidiStream stream) : _midiStream(stream) {
     uint8_t header_chunk_byte_pattern[] {0x4d, 0x54, 0x68, 0x64};
     uint8_t first4bytes[4];
@@ -80,8 +83,9 @@ uint32_t MidiParser::readVariableLengthQuantity() {
     do {
         lastRead = _midiStream.nextByte();
         buf[numRead] = lastRead & 127;
+        Serial.printf("VLQ: read byte %x\n", lastRead);
         numRead++;
-    } while (lastRead & 128);
+    } while (lastRead & (uint8_t)128);
     uint32_t vlq = 0;
     for (int i = 0; i < numRead; i++) {
         vlq |= buf[i] << ((numRead - i - 1) * 7);
