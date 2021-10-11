@@ -60,7 +60,7 @@ TrackEvent MidiParser::readEvent() {
                 message.len = 1;
                 message.data[0] = _midiStream.nextByte();
                 break;
-            default:
+            default: // TODO might be worth stating the cases explicitly
                 message.len = 2;
                 message.data[0] = _midiStream.nextByte();
                 message.data[1] = _midiStream.nextByte();

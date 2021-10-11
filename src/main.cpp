@@ -2,15 +2,14 @@
 #include "midi_stream.h"
 #include "midi_stream_parser.h"
 #include "midi_file_dumps.h"
-#include <USB-MIDI.h>
+#include <MIDI.h>
 
 const char *file_path = "midi-files/zelda-overworld.mid";
-USBMIDI_CREATE_DEFAULT_INSTANCE();
 uint32_t sz = ZELDA_FILE_BYTES_SIZE;
 MidiStream midiStream = MidiStream(zelda_theme, sz);
 elapsedMillis ms;
 bool flip = false;
-
+MIDI_CREATE_INSTANCE(HardwareSerial, Serial1,  MIDI);
 void setup() {
     Serial.begin(115200);
     delay(1000);
@@ -20,13 +19,13 @@ void setup() {
 
 void loop() {
 // write your code
-if (ms > 1000) {
-    ms = 0;
-    if (flip) {
-        MIDI.sendNoteOff(44, 127, 1);
-    } else {
-        MIDI.sendNoteOn(44, 127, 1);
-    }
+    if (ms > 1000) {
+        ms = 0;
+        if (flip) {
+            MIDI.sendNoteOff(44, 127, 1);
+        } else {
+            MIDI.sendNoteOn(44, 127, 1);
+        }
 
-}
+    }
 }

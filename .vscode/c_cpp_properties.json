@@ -10,6 +10,9 @@
             "includePath": [
                 "/Users/michael/projects/mc-audio/sequencer/include",
                 "/Users/michael/projects/mc-audio/sequencer/src",
+                "/Users/michael/projects/mc-audio/sequencer/.pio/libdeps/teensy36/USB-MIDI/src",
+                "/Users/michael/projects/mc-audio/sequencer/.pio/libdeps/teensy36/MIDIUSB/src",
+                "/Users/michael/projects/mc-audio/sequencer/.pio/libdeps/teensy36/MIDI Library/src",
                 "/Users/michael/.platformio/packages/framework-arduinoteensy/cores/teensy3",
                 "/Users/michael/.platformio/packages/framework-arduinoteensy/libraries/ADC",
                 "/Users/michael/.platformio/packages/framework-arduinoteensy/libraries/AccelStepper/src",
@@ -118,6 +121,9 @@
                 "path": [
                     "/Users/michael/projects/mc-audio/sequencer/include",
                     "/Users/michael/projects/mc-audio/sequencer/src",
+                    "/Users/michael/projects/mc-audio/sequencer/.pio/libdeps/teensy36/USB-MIDI/src",
+                    "/Users/michael/projects/mc-audio/sequencer/.pio/libdeps/teensy36/MIDIUSB/src",
+                    "/Users/michael/projects/mc-audio/sequencer/.pio/libdeps/teensy36/MIDI Library/src",
                     "/Users/michael/.platformio/packages/framework-arduinoteensy/cores/teensy3",
                     "/Users/michael/.platformio/packages/framework-arduinoteensy/libraries/ADC",
                     "/Users/michael/.platformio/packages/framework-arduinoteensy/libraries/AccelStepper/src",
