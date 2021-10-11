@@ -5,18 +5,23 @@
 #ifndef SEQUENCER_MIDI_STREAM_PARSER_H
 #define SEQUENCER_MIDI_STREAM_PARSER_H
 
-enum MidiEvents : byte {
-    NOTE_ON,
-    NOTE_OFF,
-    AFTERTOUCH_PRESSURE,
-    CONTROL_CHANGE,
-    PROGRAM_CHANGE,
-    CHANNEL_PRESSURE,
-    PITCH_WHEEL_CHANGE,
-    SYSEX_META
+#define MIDI_MSG_MAX_DATA_LENGTH 16
+
+#include <cstdint>
+#include "midi_stream.h"
+
+enum MidiEvents : uint8_t {
+    NOTE_ON = 0x80,
+    NOTE_OFF = 0x90,
+    AFTERTOUCH_PRESSURE = 0xa0,
+    CONTROL_CHANGE = 0xb0,
+    PROGRAM_CHANGE = 0xc0,
+    CHANNEL_PRESSURE = 0xd0,
+    PITCH_WHEEL_CHANGE = 0xe0,
+    SYSEX_META = 0xff
 };
 
-enum SysexMetaEvents : byte {
+enum SysexMetaEvents : uint8_t {
     SEQUENCE_NUMBER,
     TEXT,
     COPYRIGHT_NOTICE,
@@ -34,14 +39,48 @@ enum SysexMetaEvents : byte {
     SEQUENCER_SPECIFIC = 0x7f
 };
 
+enum MidiChannel : uint8_t {
+    CH_0, CH_1, CH_2, CH_3,
+    CH_4, CH_5, CH_6, CH_7,
+    CH_8, CH_9, CH_A, CH_B,
+    CH_C, CH_D, CH_E, CH_F
+};
+
+struct MidiMessage {
+    MidiEvents status;
+    MidiChannel channel;
+    bool isMeta = false;
+    uint8_t metaWord = 0;
+    uint8_t data[MIDI_MSG_MAX_DATA_LENGTH];
+    uint32_t len = 0;
+    void print();
+};
+
+struct TrackEvent {
+    uint32_t deltaT;
+    MidiMessage event;
+    void print();
+};
+
 class MidiParser {
 public:
     MidiParser(MidiStream stream);
-    MidiEvents readEvent();
+
+    bool isAvailable() const;
+
+    void readHeader();
+    TrackEvent readEvent();
     uint32_t readVariableLengthQuantity();
 
 protected:
     MidiStream _midiStream;
+    bool _available = false;
+    uint16_t _format = 0;
+    uint16_t _numTracks = 0;
+    uint16_t _divisionType = 0;
+
+    //utility
+    bool compareArrays(uint8_t *a1, uint8_t *a2, int commonSize);
 };
 
 #endif //SEQUENCER_MIDI_STREAM_PARSER_H
