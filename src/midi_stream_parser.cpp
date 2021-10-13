@@ -58,12 +58,28 @@ TrackEvent MidiParser::readEvent() {
     } else {
         switch ((eventType & 0xf0)) {
             case PROGRAM_CHANGE:
-            case CHANNEL_PRESSURE:
-                // The only 2 event types with 1 data byte
+                message.status = PROGRAM_CHANGE;
                 message.len = 1;
                 message.data[0] = _midiStream.nextByte();
                 break;
+            case CHANNEL_PRESSURE:
+                // The only 2 event types with 1 data byte
+                message.status = CHANNEL_PRESSURE;
+                message.len = 1;
+                message.data[0] = _midiStream.nextByte();
+                break;
+            case NOTE_OFF:
+                message.status = NOTE_OFF;
+                message.len = 2;
+                message.data[0] = _midiStream.nextByte();
+                message.data[1] = _midiStream.nextByte();
+            case NOTE_ON:
+                message.status = NOTE_ON;
+                message.len = 2;
+                message.data[0] = _midiStream.nextByte();
+                message.data[1] = _midiStream.nextByte();
             default: // TODO might be worth stating the cases explicitly
+                message.status = MidiEvents(eventType & 0xf0);
                 message.len = 2;
                 message.data[0] = _midiStream.nextByte();
                 message.data[1] = _midiStream.nextByte();
@@ -92,6 +108,16 @@ uint32_t MidiParser::readVariableLengthQuantity() {
     }
     return vlq;
 }
+
+uint32_t MidiParser::readInt32() {
+    uint32_t uint32 = 0;
+    uint32 |= _midiStream.nextByte() << 24;
+    uint32 |= _midiStream.nextByte() << 16;
+    uint32 |= _midiStream.nextByte() << 8;
+    uint32 |= _midiStream.nextByte();
+    return uint32;
+}
+
 
 bool MidiParser::isAvailable() const {
     return _available;

@@ -71,7 +71,7 @@ public:
     void readHeader();
     TrackEvent readEvent();
     uint32_t readVariableLengthQuantity();
-
+    uint32_t readInt32();
     // Testing only
     void advanceBy(uint8_t numBytes);
 protected:
