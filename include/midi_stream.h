@@ -22,12 +22,15 @@ public:
     uint8_t nextByte();
 
     uint32_t getSize() const;
+    void resetRunningNumBytes();
+
+    uint32_t getRunningNumRead() const;
 
 protected:
     uint8_t *_stream;
     uint32_t _size;
     uint32_t _indexOffset;
-
+    uint32_t _runningNumRead = 0;
 };
 
 #endif //SEQUENCER_MIDISTREAM_H

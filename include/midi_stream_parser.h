@@ -67,20 +67,27 @@ public:
     MidiParser(MidiStream stream);
 
     bool isAvailable() const;
-
-    void readHeader();
+    void readTrackStart();
+    void printHeaderInfo();
     TrackEvent readEvent();
+    TrackEvent readEventAndPrint();
     uint32_t readVariableLengthQuantity();
     uint32_t readInt32();
     // Testing only
     void advanceBy(uint8_t numBytes);
+    uint32_t runningNumBytesRead();
+    void resetRunningNum();
+
+    uint32_t getCurrentChunkLength() const;
+
 protected:
+    void readHeader();
     MidiStream _midiStream;
     bool _available = false;
     uint16_t _format = 0;
     uint16_t _numTracks = 0;
     uint16_t _divisionType = 0;
-
+    uint32_t _currentChunkLength;
     //utility
     bool compareArrays(uint8_t *a1, uint8_t *a2, int commonSize);
 };

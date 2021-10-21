@@ -15,9 +15,18 @@ bool MidiStream::hasNext() {
 }
 
 uint8_t MidiStream::nextByte() {
+    _runningNumRead++;
     return _stream[_indexOffset++];
 }
 
 uint32_t MidiStream::getSize() const {
     return _size;
+}
+
+uint32_t MidiStream::getRunningNumRead() const {
+    return _runningNumRead;
+}
+
+void MidiStream::resetRunningNumBytes() {
+    _runningNumRead = 0;
 }
