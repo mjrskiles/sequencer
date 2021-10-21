@@ -55,13 +55,6 @@ void loop() {
         Serial.printf("Running bytes: %d\n", midiParser.runningNumBytesRead());
         TrackEvent nextEvent = midiParser.readEventAndPrint();
         delayMicroseconds(nextEvent.deltaT * 600);
-//        if (nextEvent.event.status == NOTE_ON) {
-//            Serial.println("Send note On");
-//            MIDI.sendNoteOn(nextEvent.event.data[0], nextEvent.event.data[1], 1);
-//        } else if (nextEvent.event.status == NOTE_OFF) {
-//            Serial.println("Send note Off");
-//            MIDI.sendNoteOff(nextEvent.event.data[0], nextEvent.event.data[1], 1);
-//        }
     if (nextEvent.event.status == NOTE_ON) {
         Serial.println("Send note On");
         uint8_t vel = nextEvent.event.data[1];
