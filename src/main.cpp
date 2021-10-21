@@ -18,6 +18,8 @@ MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
 void setup() {
     pinMode(LED_BUILTIN, OUTPUT);
     pinMode(40, INPUT_PULLUP);
+    pinMode(14, INPUT);
+    MIDI.begin(1);
     delay(3000);
     Serial.printf("Buffer size: %d\n", midiStream.getSize());
     if (midiParser.isAvailable()) {
@@ -29,7 +31,11 @@ void setup() {
         }
         midiParser.readTrackStart();
     }
-
+    while(1) {
+        if (digitalRead(14) == LOW) {
+            break;
+        }
+    }
 }
 
 void loop() {
@@ -45,7 +51,28 @@ void loop() {
         flipper = true;
     }
     if (midiParser.runningNumBytesRead() < midiParser.getCurrentChunkLength()) {
-        midiParser.readEventAndPrint();
+        Serial.println("> > > E V E N T < < <");
         Serial.printf("Running bytes: %d\n", midiParser.runningNumBytesRead());
+        TrackEvent nextEvent = midiParser.readEventAndPrint();
+        delayMicroseconds(nextEvent.deltaT * 600);
+//        if (nextEvent.event.status == NOTE_ON) {
+//            Serial.println("Send note On");
+//            MIDI.sendNoteOn(nextEvent.event.data[0], nextEvent.event.data[1], 1);
+//        } else if (nextEvent.event.status == NOTE_OFF) {
+//            Serial.println("Send note Off");
+//            MIDI.sendNoteOff(nextEvent.event.data[0], nextEvent.event.data[1], 1);
+//        }
+    if (nextEvent.event.status == NOTE_ON) {
+        Serial.println("Send note On");
+        uint8_t vel = nextEvent.event.data[1];
+        vel = vel > 127 ? 127 : vel;
+        Serial.printf("vvv Note velocity %x\n", vel);
+        MIDI.sendNoteOn(nextEvent.event.data[0], 65, 1);
+    } else if (nextEvent.event.status == NOTE_OFF) {
+        Serial.println("Send note Off");
+        MIDI.sendNoteOff(nextEvent.event.data[0], 0, 1);
+    }
+    } else {
+        MIDI.sendStop();
     }
 }

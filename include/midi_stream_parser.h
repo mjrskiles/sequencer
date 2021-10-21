@@ -11,8 +11,8 @@
 #include "midi_stream.h"
 
 enum MidiEvents : uint8_t {
-    NOTE_ON = 0x80,
-    NOTE_OFF = 0x90,
+    NOTE_ON = 0x90,
+    NOTE_OFF = 0x80,
     AFTERTOUCH_PRESSURE = 0xa0,
     CONTROL_CHANGE = 0xb0,
     PROGRAM_CHANGE = 0xc0,
