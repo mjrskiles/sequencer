@@ -9,6 +9,10 @@
 
 #include <cstdint>
 #include "midi_stream.h"
+#include "utils.h"
+
+// Testing
+#include <Arduino.h>
 
 enum MidiEvents : uint8_t {
     NOTE_ON = 0x90,
@@ -64,7 +68,7 @@ struct TrackEvent {
 
 class MidiParser {
 public:
-    MidiParser(MidiStream stream);
+    explicit MidiParser(MidiStream stream, MidiStream *trackStreamBuffer, uint16_t size);
 
     bool isAvailable() const;
     void readTrackStart();
@@ -82,7 +86,9 @@ public:
 
 protected:
     void readHeader();
-    MidiStream _midiStream;
+    MidiStream _startOfStream;
+    MidiStream _headerStream;
+    MidiStream *_trackStreams;
     bool _available = false;
     uint16_t _format = 0;
     uint16_t _numTracks = 0;

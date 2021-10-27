@@ -3,11 +3,12 @@
 #include "midi_stream_parser.h"
 #include "midi_file_dumps.h"
 #include <MIDI.h>
+#include "stream_buffers.h"
 
 const char *file_path = "midi-files/zelda-overworld.mid";
 uint32_t sz = ZELDA_FILE_BYTES_SIZE;
 MidiStream midiStream = MidiStream(zelda_theme, sz);
-MidiParser midiParser = MidiParser(midiStream);
+MidiParser midiParser = MidiParser(midiStream, track_streams, 16);
 bool flipper = true;
 elapsedMillis flipperTimer;
 const int channel = 1;
