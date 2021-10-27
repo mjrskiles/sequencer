@@ -88,6 +88,7 @@ protected:
     uint16_t _numTracks = 0;
     uint16_t _divisionType = 0;
     uint32_t _currentChunkLength;
+    MidiEvents _lastEvent;
     //utility
     bool compareArrays(uint8_t *a1, uint8_t *a2, int commonSize);
 };

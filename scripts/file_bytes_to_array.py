@@ -4,7 +4,7 @@
 import os
 import sys
 
-file_path = "../midi-files/zelda-overworld.mid"
+file_path = "../midi-files/smb_cstl.mid"
 list_for_file = ""
 
 midi_file = open(file_path, 'rb')
@@ -18,7 +18,7 @@ while byte:
     byte = midi_file.read(1)
     i += 1
 
-target = 'target/zelda-bytes.txt'
+target = 'target/mario-castle-bytes.txt'
 if os.path.exists(target):
     os.remove(target)
 f = open(target, 'w')

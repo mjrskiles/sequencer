@@ -92,50 +92,61 @@ TrackEvent MidiParser::readEvent() {
     uint32_t deltaT = readVariableLengthQuantity();
     uint8_t eventType = _midiStream.nextByte();
 
-    if (eventType == SYSEX_META) {
-        message.isMeta = true;
-        message.metaWord = _midiStream.nextByte();
-        message.len = readVariableLengthQuantity();
-        Serial.printf("Read meta event with command %x and length %d\n", message.metaWord, message.len);
-        for (uint32_t i = 0; i < message.len; i++) {
-            message.data[i] = _midiStream.nextByte();
+
+    if (eventType >= 0x80) {
+        // has a 1 in the leftmost bit, is a status word
+        if (eventType == SYSEX_META) {
+            message.isMeta = true;
+            message.metaWord = _midiStream.nextByte();
+            message.len = readVariableLengthQuantity();
+            Serial.printf("Read meta event with command %x and length %d\n", message.metaWord, message.len);
+            for (uint32_t i = 0; i < message.len; i++) {
+                message.data[i] = _midiStream.nextByte();
+            }
+        } else {
+            switch ((eventType & 0xf0)) {
+                case PROGRAM_CHANGE:
+                    message.status = PROGRAM_CHANGE;
+                    message.len = 1;
+                    message.data[0] = _midiStream.nextByte();
+                    break;
+                case CHANNEL_PRESSURE:
+                    // The only 2 event types with 1 data byte
+                    message.status = CHANNEL_PRESSURE;
+                    message.len = 1;
+                    message.data[0] = _midiStream.nextByte();
+                    break;
+                case NOTE_OFF:
+                    message.status = NOTE_OFF;
+                    message.len = 2;
+                    message.data[0] = _midiStream.nextByte();
+                    message.data[1] = _midiStream.nextByte();
+                    break;
+                case NOTE_ON:
+                    message.status = NOTE_ON;
+                    message.len = 2;
+                    message.data[0] = _midiStream.nextByte();
+                    message.data[1] = _midiStream.nextByte();
+                    break;
+                default: // TODO might be worth stating the cases explicitly
+                    message.status = MidiEvents(eventType & 0xf0);
+                    message.len = 2;
+                    message.data[0] = _midiStream.nextByte();
+                    message.data[1] = _midiStream.nextByte();
+                    break;
+            }
         }
     } else {
-        switch ((eventType & 0xf0)) {
-            case PROGRAM_CHANGE:
-                message.status = PROGRAM_CHANGE;
-                message.len = 1;
-                message.data[0] = _midiStream.nextByte();
-                break;
-            case CHANNEL_PRESSURE:
-                // The only 2 event types with 1 data byte
-                message.status = CHANNEL_PRESSURE;
-                message.len = 1;
-                message.data[0] = _midiStream.nextByte();
-                break;
-            case NOTE_OFF:
-                message.status = NOTE_OFF;
-                message.len = 2;
-                message.data[0] = _midiStream.nextByte();
-                message.data[1] = _midiStream.nextByte();
-                break;
-            case NOTE_ON:
-                message.status = NOTE_ON;
-                message.len = 2;
-                message.data[0] = _midiStream.nextByte();
-                message.data[1] = _midiStream.nextByte();
-                break;
-            default: // TODO might be worth stating the cases explicitly
-                message.status = MidiEvents(eventType & 0xf0);
-                message.len = 2;
-                message.data[0] = _midiStream.nextByte();
-                message.data[1] = _midiStream.nextByte();
-                break;
-        }
+        uint8_t dataByte1 = eventType; // the byte was actually a running status data byte
+        message.status = _lastEvent;
+        message.len = 2;
+        message.data[0] = dataByte1;
+        message.data[1] = _midiStream.nextByte();
     }
     TrackEvent event = TrackEvent();
     event.deltaT = deltaT;
     event.event = message;
+    _lastEvent = message.status;
     return event;
 }
 
