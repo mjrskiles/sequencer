@@ -4,7 +4,6 @@
 #include "midi_file_dumps.h"
 #include <MIDI.h>
 
-const char *file_path = "midi-files/zelda-overworld.mid";
 uint32_t sz = ZELDA_FILE_BYTES_SIZE;
 uint32_t marioSize = MARIO_CASTLE_BYTES_SIZE;
 MidiStream midiStream = MidiStream(mario_castle_theme, marioSize);
@@ -25,18 +24,13 @@ void setup() {
     Serial.printf("Buffer size: %d\n", midiStream.getSize());
     if (midiParser.isAvailable()) {
         midiParser.printHeaderInfo();
-        midiParser.readTrackStart();
-        while (midiParser.runningNumBytesRead() < midiParser.getCurrentChunkLength()) {
-            midiParser.readEventAndPrint();
-            Serial.printf("Running bytes: %d\n", midiParser.runningNumBytesRead());
-        }
-        midiParser.readTrackStart();
     }
     while(1) {
         if (digitalRead(14) == LOW) {
             break;
         }
     }
+    midiParser.readTrackStart();
 }
 
 void loop() {

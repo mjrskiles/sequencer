@@ -3,7 +3,7 @@
 //
 
 /*
- * _format |= _buffer[0] << 8;
+ *      _format |= _buffer[0] << 8;
         _format |= _buffer[1];
         _numTracks |= _buffer[2] << 8;
         _numTracks |= _buffer[3];
@@ -39,6 +39,13 @@ MidiParser::MidiParser(MidiStream stream) : _midiStream(stream) {
     if (compareArrays(header_chunk_byte_pattern, first4bytes, 4)){
         _available = true;
         readHeader();
+        if (_format == 1) {
+            readTrackStart();
+            while (runningNumBytesRead() < getCurrentChunkLength()) {
+                readEventAndPrint();
+                Serial.printf("Running bytes: %d\n", runningNumBytesRead());
+            }
+        }
     }
 }
 
