@@ -6,6 +6,12 @@
 #define SEQUENCER_STREAM_BUFFERS_H
 
 #include "midi_stream.h"
+#include "midi_stream_parser.h"
+
+struct EventPayload {
+    TrackEvent event;
+    unsigned long timeTarget = 0;
+};
 
 MidiStream track_streams[16] {
     MidiStream(),
@@ -28,5 +34,7 @@ MidiStream track_streams[16] {
     MidiStream(),
     MidiStream(),
 };
+
+EventPayload payloads[16];
 
 #endif //SEQUENCER_STREAM_BUFFERS_H

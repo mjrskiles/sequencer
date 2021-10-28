@@ -74,26 +74,30 @@ public:
     bool isAvailable() const;
     void prepTrack(MidiStream &trackStream);
     void printHeaderInfo();
-    TrackEvent readEvent();
-    TrackEvent readEventAndPrint();
-    uint32_t readVariableLengthQuantity();
+    TrackEvent readEvent(MidiStream &stream);
+    TrackEvent readEventAndPrint(MidiStream &stream);
+    uint32_t readVariableLengthQuantity(MidiStream &stream);
     uint32_t readInt32();
     // Testing only
-    void advanceBy(uint8_t numBytes);
+    void advanceBy(uint32_t numBytes);
     uint32_t runningNumBytesRead();
     void resetRunningNum();
 
     uint32_t getCurrentChunkLength() const;
 
+    MidiStream *trackStreams;
 protected:
     void readHeader();
     MidiStream _startOfStream;
     MidiStream _workerStream;
-    MidiStream *_trackStreams;
     uint16_t _numAvailableTrackStreams;
     bool _available = false;
     uint16_t _format = 0;
     uint16_t _numTracks = 0;
+public:
+    uint16_t getNumTracks() const;
+
+protected:
     uint16_t _divisionType = 0;
     uint32_t _currentChunkLength;
     MidiEvents _lastEvent;

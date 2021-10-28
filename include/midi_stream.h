@@ -38,6 +38,10 @@ protected:
     uint8_t *_stream;
     uint32_t _size = 0;
     uint32_t _indexOffset = 0;
+public:
+    uint32_t getIndexOffset() const;
+
+protected:
     uint32_t _runningNumRead = 0;
 };
 

@@ -43,3 +43,7 @@ void MidiStream::setStream(uint8_t *stream, uint16_t size) {
 uint8_t *MidiStream::getStream() const {
     return _stream;
 }
+
+uint32_t MidiStream::getIndexOffset() const {
+    return _indexOffset;
+}

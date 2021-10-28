@@ -20,13 +20,13 @@ void MidiMessage::print() {
 }
 
 void TrackEvent::print() {
-    Serial.printf("Track Event\nDelta T %d\n", deltaT);
+    Serial.printf("\n\nTrack Event\nDelta T %d\n", deltaT);
     event.print();
 }
 
 MidiParser::MidiParser(MidiStream stream, MidiStream *trackStreamBuffer, uint16_t size) : _workerStream(stream) {
     _startOfStream = stream;
-    _trackStreams = trackStreamBuffer;
+    trackStreams = trackStreamBuffer;
     _numAvailableTrackStreams = size;
 }
 
@@ -47,7 +47,7 @@ void MidiParser::init() {
         } else {
             for (uint16_t i = 0; i < _numTracks; i++) {
                 // gather up the start of each track
-                prepTrack(_trackStreams[i]);
+                prepTrack(trackStreams[i]);
             }
         }
     }
@@ -84,13 +84,12 @@ void MidiParser::prepTrack(MidiStream &trackStream) {
         printBuffer(first4bytes, 4);
     }
     uint32_t trackLength = 0;
-    trackLength |= _workerStream.nextByte() << 24;
-    trackLength |= _workerStream.nextByte() << 16;
-    trackLength |= _workerStream.nextByte() << 8;
-    trackLength |= _workerStream.nextByte() << 0;
+    trackLength = readInt32();
     // set the track's pointer to the first event in that track
-    trackStream.setStream(_workerStream.getStream(), trackLength);
-    Serial.printf("Read track length %d\n", _currentChunkLength);
+    uint8_t *trackStartPos = _workerStream.getStream() + _workerStream.getIndexOffset();
+    Serial.printf("Track start pos: %x\n", trackStartPos);
+    trackStream.setStream(trackStartPos, trackLength);
+    Serial.printf("Read track length %d\n", trackLength);
 
     // set the worker stream to the start of the next track, or the end
     advanceBy(trackLength);
@@ -102,52 +101,52 @@ void MidiParser::printHeaderInfo() {
     Serial.printf("Format: %x | # of tracks: %d | Div Type: %x\n", _format, _numTracks, _divisionType);
 }
 
-TrackEvent MidiParser::readEvent() {
+TrackEvent MidiParser::readEvent(MidiStream &stream) {
     MidiMessage message = MidiMessage();
-    uint32_t deltaT = readVariableLengthQuantity();
-    uint8_t eventType = _workerStream.nextByte();
-
+    uint32_t deltaT = readVariableLengthQuantity(stream);
+    uint8_t eventType = stream.nextByte();
+    Serial.printf("readEvent read %x as the event type\n", eventType);
 
     if (eventType >= 0x80) {
         // has a 1 in the leftmost bit, is a status word
         if (eventType == SYSEX_META) {
             message.isMeta = true;
-            message.metaWord = _midiStream.nextByte();
-            message.len = readVariableLengthQuantity();
+            message.metaWord = stream.nextByte();
+            message.len = readVariableLengthQuantity(stream);
             Serial.printf("Read meta event with command %x and length %d\n", message.metaWord, message.len);
             for (uint32_t i = 0; i < message.len; i++) {
-                message.data[i] = _midiStream.nextByte();
+                message.data[i] = stream.nextByte();
             }
         } else {
             switch ((eventType & 0xf0)) {
                 case PROGRAM_CHANGE:
                     message.status = PROGRAM_CHANGE;
                     message.len = 1;
-                    message.data[0] = _midiStream.nextByte();
+                    message.data[0] = stream.nextByte();
                     break;
                 case CHANNEL_PRESSURE:
                     // The only 2 event types with 1 data byte
                     message.status = CHANNEL_PRESSURE;
                     message.len = 1;
-                    message.data[0] = _midiStream.nextByte();
+                    message.data[0] = stream.nextByte();
                     break;
                 case NOTE_OFF:
                     message.status = NOTE_OFF;
                     message.len = 2;
-                    message.data[0] = _midiStream.nextByte();
-                    message.data[1] = _midiStream.nextByte();
+                    message.data[0] = stream.nextByte();
+                    message.data[1] = stream.nextByte();
                     break;
                 case NOTE_ON:
                     message.status = NOTE_ON;
                     message.len = 2;
-                    message.data[0] = _midiStream.nextByte();
-                    message.data[1] = _midiStream.nextByte();
+                    message.data[0] = stream.nextByte();
+                    message.data[1] = stream.nextByte();
                     break;
                 default: // TODO might be worth stating the cases explicitly
                     message.status = MidiEvents(eventType & 0xf0);
                     message.len = 2;
-                    message.data[0] = _midiStream.nextByte();
-                    message.data[1] = _midiStream.nextByte();
+                    message.data[0] = stream.nextByte();
+                    message.data[1] = stream.nextByte();
                     break;
             }
         }
@@ -156,7 +155,7 @@ TrackEvent MidiParser::readEvent() {
         message.status = _lastEvent;
         message.len = 2;
         message.data[0] = dataByte1;
-        message.data[1] = _midiStream.nextByte();
+        message.data[1] = stream.nextByte();
     }
     TrackEvent event = TrackEvent();
     event.deltaT = deltaT;
@@ -165,19 +164,19 @@ TrackEvent MidiParser::readEvent() {
     return event;
 }
 
-TrackEvent MidiParser::readEventAndPrint() {
-    TrackEvent trackEvent = readEvent();
+TrackEvent MidiParser::readEventAndPrint(MidiStream &stream) {
+    TrackEvent trackEvent = readEvent(stream);
     trackEvent.print();
-    Serial.printf("---\n");
+    Serial.printf("---\n\n");
     return trackEvent;
 }
 
-uint32_t MidiParser::readVariableLengthQuantity() {
+uint32_t MidiParser::readVariableLengthQuantity(MidiStream &stream) {
     uint8_t buf[4]; // max size of a VLQ is going to be 4 bytes
     int numRead = 0;
     uint8_t lastRead = 0;
     do {
-        lastRead = _workerStream.nextByte();
+        lastRead = stream.nextByte();
         buf[numRead] = lastRead & 127;
         Serial.printf("VLQ: read byte %x\n", lastRead);
         numRead++;
@@ -213,8 +212,8 @@ bool MidiParser::compareArrays(uint8_t *a1, uint8_t *a2, int commonSize) {
     return true;
 }
 
-void MidiParser::advanceBy(uint8_t numBytes) {
-    for(uint8_t i = 0; i < numBytes; i++) {
+void MidiParser::advanceBy(uint32_t numBytes) {
+    for(uint32_t i = 0; i < numBytes; i++) {
         _workerStream.nextByte();
     }
 }
@@ -229,4 +228,8 @@ void MidiParser::resetRunningNum() {
 
 uint32_t MidiParser::getCurrentChunkLength() const {
     return _currentChunkLength;
+}
+
+uint16_t MidiParser::getNumTracks() const {
+    return _numTracks;
 }
