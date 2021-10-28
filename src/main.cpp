@@ -23,15 +23,7 @@ void setup() {
     MIDI.begin(1);
     delay(3000);
     Serial.printf("Buffer size: %d\n", midiStream.getSize());
-    if (midiParser.isAvailable()) {
-        midiParser.printHeaderInfo();
-        midiParser.readTrackStart();
-        while (midiParser.runningNumBytesRead() < midiParser.getCurrentChunkLength()) {
-            midiParser.readEventAndPrint();
-            Serial.printf("Running bytes: %d\n", midiParser.runningNumBytesRead());
-        }
-        midiParser.readTrackStart();
-    }
+    midiParser.init();
     while(1) {
         if (digitalRead(14) == LOW) {
             break;

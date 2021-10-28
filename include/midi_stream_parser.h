@@ -70,8 +70,9 @@ class MidiParser {
 public:
     explicit MidiParser(MidiStream stream, MidiStream *trackStreamBuffer, uint16_t size);
 
+    void init();
     bool isAvailable() const;
-    void readTrackStart();
+    void prepTrack(MidiStream &trackStream);
     void printHeaderInfo();
     TrackEvent readEvent();
     TrackEvent readEventAndPrint();
@@ -87,8 +88,9 @@ public:
 protected:
     void readHeader();
     MidiStream _startOfStream;
-    MidiStream _headerStream;
+    MidiStream _workerStream;
     MidiStream *_trackStreams;
+    uint16_t _numAvailableTrackStreams;
     bool _available = false;
     uint16_t _format = 0;
     uint16_t _numTracks = 0;

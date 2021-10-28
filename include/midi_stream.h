@@ -29,6 +29,9 @@ public:
 
     uint32_t getRunningNumRead() const;
     void setStream( uint8_t *stream, uint16_t size);
+
+    uint8_t *getStream() const;
+
 protected:
 
 
