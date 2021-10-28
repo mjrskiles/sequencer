@@ -12,11 +12,6 @@
  */
 
 #include <midi_stream_parser.h>
-#include <midi_stream.h>
-#include "utils.h"
-
-// Testing
-#include <Arduino.h>
 
 void MidiMessage::print() {
     Serial.printf("Status word: %x | Channel: %x\n", status, channel);
@@ -29,21 +24,30 @@ void TrackEvent::print() {
     event.print();
 }
 
-MidiParser::MidiParser(MidiStream stream) : _midiStream(stream) {
+MidiParser::MidiParser(MidiStream stream, MidiStream *trackStreamBuffer, uint16_t size) : _workerStream(stream) {
+    _startOfStream = stream;
+    _trackStreams = trackStreamBuffer;
+    _numAvailableTrackStreams = size;
+}
+
+void MidiParser::init() {
     uint8_t header_chunk_byte_pattern[] {0x4d, 0x54, 0x68, 0x64};
     uint8_t first4bytes[4];
-    first4bytes[0] = _midiStream.nextByte();
-    first4bytes[1] = _midiStream.nextByte();
-    first4bytes[2] = _midiStream.nextByte();
-    first4bytes[3] = _midiStream.nextByte();
+    first4bytes[0] = _workerStream.nextByte();
+    first4bytes[1] = _workerStream.nextByte();
+    first4bytes[2] = _workerStream.nextByte();
+    first4bytes[3] = _workerStream.nextByte();
     if (compareArrays(header_chunk_byte_pattern, first4bytes, 4)){
         _available = true;
         readHeader();
-        if (_format == 1) {
-            readTrackStart();
-            while (runningNumBytesRead() < getCurrentChunkLength()) {
-                readEventAndPrint();
-                Serial.printf("Running bytes: %d\n", runningNumBytesRead());
+        printHeaderInfo();
+        if (_numTracks > 16) {
+            Serial.println("Too many tracks! Parser not available.");
+            _available = false;
+        } else {
+            for (uint16_t i = 0; i < _numTracks; i++) {
+                // gather up the start of each track
+                prepTrack(_trackStreams[i]);
             }
         }
     }
@@ -53,26 +57,26 @@ MidiParser::MidiParser(MidiStream stream) : _midiStream(stream) {
 void MidiParser::readHeader() {
     // the next 4 bytes are always 00 00 00 06, don't need them
     uint32_t headerLength = 0;
-    headerLength |= _midiStream.nextByte() << 24;
-    headerLength |= _midiStream.nextByte() << 16;
-    headerLength |= _midiStream.nextByte() << 8;
-    headerLength |= _midiStream.nextByte() << 0;
+    headerLength |= _workerStream.nextByte() << 24;
+    headerLength |= _workerStream.nextByte() << 16;
+    headerLength |= _workerStream.nextByte() << 8;
+    headerLength |= _workerStream.nextByte() << 0;
     Serial.printf("Header len: %d\n", headerLength);
-    _format |= _midiStream.nextByte() << 8;
-    _format |= _midiStream.nextByte();
-    _numTracks |= _midiStream.nextByte() << 8;
-    _numTracks |= _midiStream.nextByte();
-    _divisionType |= _midiStream.nextByte() << 8;
-    _divisionType |= _midiStream.nextByte();
+    _format |= _workerStream.nextByte() << 8;
+    _format |= _workerStream.nextByte();
+    _numTracks |= _workerStream.nextByte() << 8;
+    _numTracks |= _workerStream.nextByte();
+    _divisionType |= _workerStream.nextByte() << 8;
+    _divisionType |= _workerStream.nextByte();
 }
 
-void MidiParser::readTrackStart() {
+void MidiParser::prepTrack(MidiStream &trackStream) {
     uint8_t track_chunk_byte_pattern[] {0x4d, 0x54, 0x72, 0x6b};
     uint8_t first4bytes[4];
-    first4bytes[0] = _midiStream.nextByte();
-    first4bytes[1] = _midiStream.nextByte();
-    first4bytes[2] = _midiStream.nextByte();
-    first4bytes[3] = _midiStream.nextByte();
+    first4bytes[0] = _workerStream.nextByte();
+    first4bytes[1] = _workerStream.nextByte();
+    first4bytes[2] = _workerStream.nextByte();
+    first4bytes[3] = _workerStream.nextByte();
     if (compareArrays(track_chunk_byte_pattern, first4bytes, 4)){
         Serial.println("Started track");
     } else {
@@ -80,12 +84,16 @@ void MidiParser::readTrackStart() {
         printBuffer(first4bytes, 4);
     }
     uint32_t trackLength = 0;
-    trackLength |= _midiStream.nextByte() << 24;
-    trackLength |= _midiStream.nextByte() << 16;
-    trackLength |= _midiStream.nextByte() << 8;
-    trackLength |= _midiStream.nextByte() << 0;
-    _currentChunkLength = trackLength;
+    trackLength |= _workerStream.nextByte() << 24;
+    trackLength |= _workerStream.nextByte() << 16;
+    trackLength |= _workerStream.nextByte() << 8;
+    trackLength |= _workerStream.nextByte() << 0;
+    // set the track's pointer to the first event in that track
+    trackStream.setStream(_workerStream.getStream(), trackLength);
     Serial.printf("Read track length %d\n", _currentChunkLength);
+
+    // set the worker stream to the start of the next track, or the end
+    advanceBy(trackLength);
     resetRunningNum();
 }
 
@@ -97,7 +105,7 @@ void MidiParser::printHeaderInfo() {
 TrackEvent MidiParser::readEvent() {
     MidiMessage message = MidiMessage();
     uint32_t deltaT = readVariableLengthQuantity();
-    uint8_t eventType = _midiStream.nextByte();
+    uint8_t eventType = _workerStream.nextByte();
 
 
     if (eventType >= 0x80) {
@@ -169,7 +177,7 @@ uint32_t MidiParser::readVariableLengthQuantity() {
     int numRead = 0;
     uint8_t lastRead = 0;
     do {
-        lastRead = _midiStream.nextByte();
+        lastRead = _workerStream.nextByte();
         buf[numRead] = lastRead & 127;
         Serial.printf("VLQ: read byte %x\n", lastRead);
         numRead++;
@@ -184,10 +192,10 @@ uint32_t MidiParser::readVariableLengthQuantity() {
 
 uint32_t MidiParser::readInt32() {
     uint32_t uint32 = 0;
-    uint32 |= _midiStream.nextByte() << 24;
-    uint32 |= _midiStream.nextByte() << 16;
-    uint32 |= _midiStream.nextByte() << 8;
-    uint32 |= _midiStream.nextByte();
+    uint32 |= _workerStream.nextByte() << 24;
+    uint32 |= _workerStream.nextByte() << 16;
+    uint32 |= _workerStream.nextByte() << 8;
+    uint32 |= _workerStream.nextByte();
     return uint32;
 }
 
@@ -207,16 +215,16 @@ bool MidiParser::compareArrays(uint8_t *a1, uint8_t *a2, int commonSize) {
 
 void MidiParser::advanceBy(uint8_t numBytes) {
     for(uint8_t i = 0; i < numBytes; i++) {
-        _midiStream.nextByte();
+        _workerStream.nextByte();
     }
 }
 
 uint32_t MidiParser::runningNumBytesRead() {
-    return _midiStream.getRunningNumRead();
+    return _workerStream.getRunningNumRead();
 }
 
 void MidiParser::resetRunningNum() {
-    _midiStream.resetRunningNumBytes();
+    _workerStream.resetRunningNumBytes();
 }
 
 uint32_t MidiParser::getCurrentChunkLength() const {

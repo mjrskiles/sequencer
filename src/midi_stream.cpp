@@ -30,3 +30,16 @@ uint32_t MidiStream::getRunningNumRead() const {
 void MidiStream::resetRunningNumBytes() {
     _runningNumRead = 0;
 }
+
+void MidiStream::setSize(uint32_t size) {
+    _size = size;
+}
+
+void MidiStream::setStream(uint8_t *stream, uint16_t size) {
+    _stream = stream;
+    _size = size;
+}
+
+uint8_t *MidiStream::getStream() const {
+    return _stream;
+}
