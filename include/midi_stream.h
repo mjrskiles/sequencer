@@ -11,13 +11,13 @@
 
 #include <cstdint>
 
-class MidiStream {
+class ByteStream {
 public:
     /*
      * Initialize the pointer into the uint8_t array
      */
-    MidiStream(uint8_t *fileBytes, uint32_t size);
-    MidiStream() { _stream = nullptr; }
+    ByteStream(uint8_t *fileBytes, uint32_t size);
+    ByteStream() { _stream = nullptr; }
 
     bool hasNext();
     uint8_t nextByte();

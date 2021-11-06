@@ -24,10 +24,12 @@ void TrackEvent::print() {
     event.print();
 }
 
-MidiParser::MidiParser(MidiStream stream, MidiStream *trackStreamBuffer, uint16_t size) : _workerStream(stream) {
+MidiParser::MidiParser(ByteStream stream, ByteStream *trackStreamBuffer, uint16_t size, MidiEvents *lastEventsBuffer)
+        : _workerStream(stream) {
     _startOfStream = stream;
     trackStreams = trackStreamBuffer;
     _numAvailableTrackStreams = size;
+    _lastEvent = lastEventsBuffer;
 }
 
 void MidiParser::init() {
@@ -47,7 +49,8 @@ void MidiParser::init() {
         } else {
             for (uint16_t i = 0; i < _numTracks; i++) {
                 // gather up the start of each track
-                prepTrack(trackStreams[i]);
+                Serial.printf("Prepping track %d\n", i);
+                prepTrack(trackStreams[i], _workerStream);
             }
         }
     }
@@ -70,13 +73,13 @@ void MidiParser::readHeader() {
     _divisionType |= _workerStream.nextByte();
 }
 
-void MidiParser::prepTrack(MidiStream &trackStream) {
+void MidiParser::prepTrack(ByteStream &trackStream, ByteStream &workerStream) {
     uint8_t track_chunk_byte_pattern[] {0x4d, 0x54, 0x72, 0x6b};
     uint8_t first4bytes[4];
-    first4bytes[0] = _workerStream.nextByte();
-    first4bytes[1] = _workerStream.nextByte();
-    first4bytes[2] = _workerStream.nextByte();
-    first4bytes[3] = _workerStream.nextByte();
+    first4bytes[0] = workerStream.nextByte();
+    first4bytes[1] = workerStream.nextByte();
+    first4bytes[2] = workerStream.nextByte();
+    first4bytes[3] = workerStream.nextByte();
     if (compareArrays(track_chunk_byte_pattern, first4bytes, 4)){
         Serial.println("Started track");
     } else {
@@ -84,16 +87,17 @@ void MidiParser::prepTrack(MidiStream &trackStream) {
         printBuffer(first4bytes, 4);
     }
     uint32_t trackLength = 0;
-    trackLength = readInt32();
+    trackLength = readInt32(workerStream);
     // set the track's pointer to the first event in that track
-    uint8_t *trackStartPos = _workerStream.getStream() + _workerStream.getIndexOffset();
-    Serial.printf("Track start pos: %x\n", trackStartPos);
+    uint8_t *trackStartPos = workerStream.getStream() + workerStream.getIndexOffset();
     trackStream.setStream(trackStartPos, trackLength);
+    Serial.printf("Track start pos: %x\n", trackStartPos);
     Serial.printf("Read track length %d\n", trackLength);
 
     // set the worker stream to the start of the next track, or the end
-    advanceBy(trackLength);
-    resetRunningNum();
+    advanceBy(trackLength, workerStream);
+    workerStream.resetRunningNumBytes();
+    trackStream.resetRunningNumBytes();
 }
 
 void MidiParser::printHeaderInfo() {
@@ -101,7 +105,7 @@ void MidiParser::printHeaderInfo() {
     Serial.printf("Format: %x | # of tracks: %d | Div Type: %x\n", _format, _numTracks, _divisionType);
 }
 
-TrackEvent MidiParser::readEvent(MidiStream &stream) {
+TrackEvent MidiParser::readEvent(ByteStream &stream, MidiEvents &lastEventBuffer) {
     MidiMessage message = MidiMessage();
     uint32_t deltaT = readVariableLengthQuantity(stream);
     uint8_t eventType = stream.nextByte();
@@ -109,9 +113,15 @@ TrackEvent MidiParser::readEvent(MidiStream &stream) {
 
     if (eventType >= 0x80) {
         // has a 1 in the leftmost bit, is a status word
+//        Serial.println("Entered status control branch");
+        lastEventBuffer = MidiEvents(eventType);
+//        Serial.printf("Set last event buffer %x", lastEventBuffer);
         if (eventType == SYSEX_META) {
+//            Serial.println("Entered sysex meta branch");
             message.isMeta = true;
+            message.status = eventType;
             message.metaWord = stream.nextByte();
+//            Serial.println("got metaword");
             message.len = readVariableLengthQuantity(stream);
             Serial.printf("Read meta event with command %x and length %d\n", message.metaWord, message.len);
             for (uint32_t i = 0; i < message.len; i++) {
@@ -150,9 +160,9 @@ TrackEvent MidiParser::readEvent(MidiStream &stream) {
                     break;
             }
         }
-    } else {
+    }else {
+        message.status = lastEventBuffer;
         uint8_t dataByte1 = eventType; // the byte was actually a running status data byte
-        message.status = _lastEvent;
         message.len = 2;
         message.data[0] = dataByte1;
         message.data[1] = stream.nextByte();
@@ -160,25 +170,29 @@ TrackEvent MidiParser::readEvent(MidiStream &stream) {
     TrackEvent event = TrackEvent();
     event.deltaT = deltaT;
     event.event = message;
-    _lastEvent = message.status;
     return event;
 }
 
-TrackEvent MidiParser::readEventAndPrint(MidiStream &stream) {
-    TrackEvent trackEvent = readEvent(stream);
+TrackEvent MidiParser::readEventAndPrint(ByteStream &stream, MidiEvents &lastEventBuffer) {
+    TrackEvent trackEvent = readEvent(stream, lastEventBuffer);
     trackEvent.print();
     Serial.printf("---\n\n");
     return trackEvent;
 }
 
-uint32_t MidiParser::readVariableLengthQuantity(MidiStream &stream) {
+TrackEvent MidiParser::readEventAndPrint(uint16_t trackNum) {
+    Serial.printf("<track %x>\n", trackNum);
+    return readEventAndPrint(trackStreams[trackNum], _lastEvent[trackNum]);
+}
+
+uint32_t MidiParser::readVariableLengthQuantity(ByteStream &stream) {
     uint8_t buf[4]; // max size of a VLQ is going to be 4 bytes
     int numRead = 0;
     uint8_t lastRead = 0;
     do {
         lastRead = stream.nextByte();
         buf[numRead] = lastRead & 127;
-        Serial.printf("VLQ: read byte %x\n", lastRead);
+//        Serial.printf("VLQ: read byte %x\n", lastRead);
         numRead++;
     } while (lastRead & (uint8_t)128);
     uint32_t vlq = 0;
@@ -189,12 +203,12 @@ uint32_t MidiParser::readVariableLengthQuantity(MidiStream &stream) {
     return vlq;
 }
 
-uint32_t MidiParser::readInt32() {
+uint32_t MidiParser::readInt32(ByteStream &stream) {
     uint32_t uint32 = 0;
-    uint32 |= _workerStream.nextByte() << 24;
-    uint32 |= _workerStream.nextByte() << 16;
-    uint32 |= _workerStream.nextByte() << 8;
-    uint32 |= _workerStream.nextByte();
+    uint32 |= stream.nextByte() << 24;
+    uint32 |= stream.nextByte() << 16;
+    uint32 |= stream.nextByte() << 8;
+    uint32 |= stream.nextByte();
     return uint32;
 }
 
@@ -212,24 +226,16 @@ bool MidiParser::compareArrays(uint8_t *a1, uint8_t *a2, int commonSize) {
     return true;
 }
 
-void MidiParser::advanceBy(uint32_t numBytes) {
+void MidiParser::advanceBy(uint32_t numBytes, ByteStream &stream) {
     for(uint32_t i = 0; i < numBytes; i++) {
-        _workerStream.nextByte();
+        stream.nextByte();
     }
-}
-
-uint32_t MidiParser::runningNumBytesRead() {
-    return _workerStream.getRunningNumRead();
-}
-
-void MidiParser::resetRunningNum() {
-    _workerStream.resetRunningNumBytes();
-}
-
-uint32_t MidiParser::getCurrentChunkLength() const {
-    return _currentChunkLength;
 }
 
 uint16_t MidiParser::getNumTracks() const {
     return _numTracks;
+}
+
+bool MidiParser::trackHasNextEvent(uint16_t trackNum) {
+    return trackStreams[trackNum].hasNext();
 }

@@ -4,46 +4,46 @@
 
 #include "midi_stream.h"
 
-MidiStream::MidiStream(uint8_t *fileBytes, uint32_t size) {
+ByteStream::ByteStream(uint8_t *fileBytes, uint32_t size) {
     _stream = fileBytes;
-    _size = size; // This works because it's a byte array
+    _size = size;
     _indexOffset = 0;
 }
 
-bool MidiStream::hasNext() {
+bool ByteStream::hasNext() {
     return _indexOffset < _size;
 }
 
-uint8_t MidiStream::nextByte() {
+uint8_t ByteStream::nextByte() {
     _runningNumRead++;
     return _stream[_indexOffset++];
 }
 
-uint32_t MidiStream::getSize() const {
+uint32_t ByteStream::getSize() const {
     return _size;
 }
 
-uint32_t MidiStream::getRunningNumRead() const {
+uint32_t ByteStream::getRunningNumRead() const {
     return _runningNumRead;
 }
 
-void MidiStream::resetRunningNumBytes() {
+void ByteStream::resetRunningNumBytes() {
     _runningNumRead = 0;
 }
 
-void MidiStream::setSize(uint32_t size) {
+void ByteStream::setSize(uint32_t size) {
     _size = size;
 }
 
-void MidiStream::setStream(uint8_t *stream, uint16_t size) {
+void ByteStream::setStream(uint8_t *stream, uint16_t size) {
     _stream = stream;
     _size = size;
 }
 
-uint8_t *MidiStream::getStream() const {
+uint8_t *ByteStream::getStream() const {
     return _stream;
 }
 
-uint32_t MidiStream::getIndexOffset() const {
+uint32_t ByteStream::getIndexOffset() const {
     return _indexOffset;
 }

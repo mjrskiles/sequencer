@@ -13,26 +13,40 @@ struct EventPayload {
     unsigned long timeTarget = 0;
 };
 
-MidiStream track_streams[16] {
-    MidiStream(),
-    MidiStream(),
-    MidiStream(),
-    MidiStream(),
+ByteStream track_streams[16] {
+        ByteStream(),
+        ByteStream(),
+        ByteStream(),
+        ByteStream(),
 
-    MidiStream(),
-    MidiStream(),
-    MidiStream(),
-    MidiStream(),
+        ByteStream(),
+        ByteStream(),
+        ByteStream(),
+        ByteStream(),
 
-    MidiStream(),
-    MidiStream(),
-    MidiStream(),
-    MidiStream(),
+        ByteStream(),
+        ByteStream(),
+        ByteStream(),
+        ByteStream(),
 
-    MidiStream(),
-    MidiStream(),
-    MidiStream(),
-    MidiStream(),
+        ByteStream(),
+        ByteStream(),
+        ByteStream(),
+        ByteStream(),
+};
+
+MidiEvents last_event[16] {
+    NOTE_OFF, NOTE_OFF, NOTE_OFF, NOTE_OFF,
+    NOTE_OFF, NOTE_OFF, NOTE_OFF, NOTE_OFF,
+    NOTE_OFF, NOTE_OFF, NOTE_OFF, NOTE_OFF,
+    NOTE_OFF, NOTE_OFF, NOTE_OFF, NOTE_OFF
+};
+
+TrackEvent waiting_track_events[16] {
+    TrackEvent(), TrackEvent(), TrackEvent(), TrackEvent(),
+    TrackEvent(), TrackEvent(), TrackEvent(), TrackEvent(),
+    TrackEvent(), TrackEvent(), TrackEvent(), TrackEvent(),
+    TrackEvent(), TrackEvent(), TrackEvent(), TrackEvent(),
 };
 
 EventPayload payloads[16];

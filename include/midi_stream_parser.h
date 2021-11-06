@@ -5,7 +5,7 @@
 #ifndef SEQUENCER_MIDI_STREAM_PARSER_H
 #define SEQUENCER_MIDI_STREAM_PARSER_H
 
-#define MIDI_MSG_MAX_DATA_LENGTH 16
+#define MIDI_MSG_MAX_DATA_LENGTH 256
 
 #include <cstdint>
 #include "midi_stream.h"
@@ -68,41 +68,36 @@ struct TrackEvent {
 
 class MidiParser {
 public:
-    explicit MidiParser(MidiStream stream, MidiStream *trackStreamBuffer, uint16_t size);
+    MidiParser(ByteStream stream, ByteStream *trackStreamBuffer, uint16_t size, MidiEvents *lastEventsBuffer);
 
     void init();
     bool isAvailable() const;
-    void prepTrack(MidiStream &trackStream);
     void printHeaderInfo();
-    TrackEvent readEvent(MidiStream &stream);
-    TrackEvent readEventAndPrint(MidiStream &stream);
-    uint32_t readVariableLengthQuantity(MidiStream &stream);
-    uint32_t readInt32();
-    // Testing only
-    void advanceBy(uint32_t numBytes);
-    uint32_t runningNumBytesRead();
-    void resetRunningNum();
+    uint16_t getNumTracks() const;
+    bool trackHasNextEvent(uint16_t trackNum);
+    TrackEvent readEventAndPrint(uint16_t trackNum);
 
-    uint32_t getCurrentChunkLength() const;
+    static void prepTrack(ByteStream &trackStream, ByteStream &workerStream);
+    static uint32_t readVariableLengthQuantity(ByteStream &stream);
+    static uint32_t readInt32(ByteStream &stream);
+    static void advanceBy(uint32_t numBytes, ByteStream &stream);
 
-    MidiStream *trackStreams;
 protected:
+    static TrackEvent readEvent(ByteStream &stream, MidiEvents &lastEventBuffer);
+
+    static TrackEvent readEventAndPrint(ByteStream &stream, MidiEvents &lastEventBuffer);
+    ByteStream *trackStreams;
     void readHeader();
-    MidiStream _startOfStream;
-    MidiStream _workerStream;
+    ByteStream _startOfStream;
+    ByteStream _workerStream;
     uint16_t _numAvailableTrackStreams;
     bool _available = false;
     uint16_t _format = 0;
     uint16_t _numTracks = 0;
-public:
-    uint16_t getNumTracks() const;
-
-protected:
     uint16_t _divisionType = 0;
-    uint32_t _currentChunkLength;
-    MidiEvents _lastEvent;
+    MidiEvents *_lastEvent;
     //utility
-    bool compareArrays(uint8_t *a1, uint8_t *a2, int commonSize);
+    static bool compareArrays(uint8_t *a1, uint8_t *a2, int commonSize);
 };
 
 #endif //SEQUENCER_MIDI_STREAM_PARSER_H

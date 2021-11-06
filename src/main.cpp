@@ -4,12 +4,14 @@
 #include "midi_file_dumps.h"
 #include <MIDI.h>
 #include "stream_buffers.h"
+#include "midi_clock.h"
 
 uint32_t sz = ZELDA_FILE_BYTES_SIZE;
 uint32_t marioSize = MARIO_CASTLE_BYTES_SIZE;
-MidiStream midiStream = MidiStream(mario_castle_theme, marioSize);
-MidiParser midiParser = MidiParser(midiStream, track_streams, 16);
+ByteStream midiStream = ByteStream(mario_castle_theme, marioSize);
+MidiParser midiParser = MidiParser(midiStream, track_streams, 16, last_event);
 elapsedMicros pgmTime;
+MidiClock midiClock = MidiClock(track_tickers);
 bool flipper = true;
 elapsedMillis flipperTimer;
 const int channel = 1;
@@ -31,8 +33,8 @@ void setup() {
         }
     }
     for (uint16_t i = 0; i < midiParser.getNumTracks(); i++) {
-        payloads[i].event = midiParser.readEventAndPrint(midiParser.trackStreams[i]);
-        payloads[i].timeTarget = pgmTime + (payloads[i].event.deltaT);
+        waiting_track_events[i] = midiParser.readEventAndPrint(i);
+        midiClock.resetTrackTicker(i);
     }
 }
 
@@ -48,6 +50,20 @@ void loop() {
         flipperTimer = 0;
         flipper = true;
     }
-    unsigned long currentTime = pgmTime;
-    
+    for (uint16_t i = 0; i < midiParser.getNumTracks(); i++) {
+        if (midiParser.trackHasNextEvent(i) && waiting_track_events[i].deltaT <= midiClock.getTicksSinceLastEvent(i)) {
+            waiting_track_events[i] = midiParser.readEventAndPrint(i);
+            if (waiting_track_events[i].event.status == NOTE_ON) {
+                Serial.println("Send note On");
+                uint8_t vel = waiting_track_events[i].event.data[1];
+                vel = vel > 127 ? 127 : vel;
+                Serial.printf("vvv Note velocity %x\n", vel);
+                MIDI.sendNoteOn(waiting_track_events[i].event.data[0], vel, 1);
+            }
+            else if (waiting_track_events[i].event.status == NOTE_OFF) {
+                MIDI.sendNoteOff(waiting_track_events[i].event.data[0], 0, 1);
+            }
+            midiClock.resetTrackTicker(i);
+        }
+    }
 }
